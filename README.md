@@ -31,3 +31,48 @@ SHOW TABLES;
 
 
 
+Jak zamontować dump do MongoDB:
+
+Stwórz kontener z dumpem mongo:
+
+```bash
+docker run -d --name mongo-container -v PATH_TO_MONGO_DUMP\:/dump mongo
+```
+
+Użyj mongoresotre by odtworzyć bazę dane:
+```bash
+docker exec mongo-container mongorestore --uri="mongodb://localhost:27017/olympics" /dump/
+```
+
+Połącz się z kontenerem za pomocą klienta mongo:
+
+```bash
+docker exec -it mongo-container mongosh
+```
+
+Jak zamontować dump do Redis:
+
+
+Stwórz kontener z bazą redis:
+
+```bash
+docker run --name redis-container -p 6379:6379 -d redis --requirepass "your_password"
+```
+
+Skopiuj dumpa do wzkazanego katalogu dockera:
+
+```bash
+docker cp YOUR_PATH_TO_DUMP\dump.rdb redis-container:/data/
+```
+
+
+Następnie zrestatruj kontener z bazą Redis:
+
+```bash
+docker restart redis-container
+```
+
+
+
+
+
