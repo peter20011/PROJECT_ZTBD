@@ -42,6 +42,9 @@ docker run -d --name mongo-container -v PATH_TO_MONGO_DUMP\:/dump mongo
 Użyj mongoresotre by odtworzyć bazę dane:
 ```bash
 docker exec mongo-container mongorestore --uri="mongodb://localhost:27017/olympics" /dump/
+
+RIGHT
+docker exec mongo-container1 mongorestore --uri="mongodb://localhost:27017/olympics" /dump/olympics
 ```
 
 Połącz się z kontenerem za pomocą klienta mongo:
@@ -71,6 +74,26 @@ Następnie zrestatruj kontener z bazą Redis:
 ```bash
 docker restart redis-container
 ```
+
+## Jak uruchomić aplikację?
+
+```
+python3 main.py
+```
+
+Można podawać zapytania w stringu, np.:
+
+```
+Enter your query: show databases;
+```
+
+Można też podać nazwę pliku z zapytaniem z odpowiednim dla danej bazy rozszerzeniem, np.:
+```
+Enter your query: query.sql
+
+```
+Plik musi znajdować się w folderze głównym projektu.
+
 
 
 
