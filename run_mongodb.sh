@@ -8,7 +8,7 @@ docker exec $(docker ps -lq) mongorestore --uri="mongodb://localhost:27017/olymp
 
 start_time=$(date +%s.%N)
 
-result=$(docker exec $(docker ps -lq) mongosh olympics --eval "$query" 2>&1)
+result=$(docker exec $(docker ps -lq) mongosh olympics --eval $query 2>&1)
 
 end_time=$(date +%s.%N)
 execution_time=$(echo "$end_time - $start_time" | bc)

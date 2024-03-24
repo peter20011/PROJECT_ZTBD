@@ -6,7 +6,7 @@ query=$1
 docker run -d --rm -v $current_dir/mysql:/docker-entrypoint-initdb.d -e MYSQL_ALLOW_EMPTY_PASSWORD=yes mysql:latest
 container_id=$(docker ps -lq)
 #musi być sleep, żeby baza się zainicjalizowała
-sleep 15
+sleep 25
 
 start_time=$(date +%s.%N)
 

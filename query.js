@@ -1,1 +1,1 @@
-show collections
+db.medal.find()
