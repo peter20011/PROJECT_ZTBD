@@ -1,0 +1,1 @@
+db.medal.find().pretty();
