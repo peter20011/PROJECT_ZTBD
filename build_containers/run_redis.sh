@@ -13,7 +13,7 @@ echo $content > output/$file_name
 for (( i=1; i<=$it; i++ ))
 do
     docker run --rm -v $current_dir/dump_redis/:/data -d redis:latest
-    sleep 12
+    sleep 16
     container_id=$(docker ps -lq)
 
     start_time=$(date +%s.%N)
@@ -31,4 +31,5 @@ do
     echo "$i,$execution_time" >> output/$file_name
 
     docker stop $container_id
+    sleep 5
 done

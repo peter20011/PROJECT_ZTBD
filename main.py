@@ -106,15 +106,28 @@ def main():
             os.system('bash build_containers/run_mongodb.sh "' + query + '"' + ' ' + it + ' ' + file_name)
             generate_plot(file_name, [file_name])
         elif choice == '4':
-            query = input("Enter your query or file (with extension): ")
-            it = input("Enter the iteration count: ")
-            file_name = input("Enter output file name (without extension): ")
-            query_file = os.path.join('queries', query)
-            if query.endswith('.redis') and os.path.isfile(query_file):
-                with open(query_file, 'r') as file:
-                    query = file.read()
-            os.system('bash build_containers/run_redis.sh "' + query + '"' + ' ' + it + ' ' + file_name)
-            generate_plot(file_name, [file_name])
+            print("\nSelect query type:")
+            print("1) Standard command")
+            print("2) LUA script")
+            query_type = input("Enter your choice (1/2): ")
+            if query_type == '1':
+                query = input("Enter your query or file (with extension): ")
+                it = input("Enter the iteration count: ")
+                file_name = input("Enter output file name (without extension): ")
+                query_file = os.path.join('queries', query)
+                if query.endswith('.redis') and os.path.isfile(query_file):
+                    with open(query_file, 'r') as file:
+                        query = file.read()
+                os.system('bash build_containers/run_redis.sh "' + query + '"' + ' ' + it + ' ' + file_name)
+                generate_plot(file_name, [file_name])
+            elif query_type == '2':
+                query = input("Enter your LUA script name (without path, to be placed in 'scripts/' directory): ")
+                it = input("Enter the iteration count: ")
+                file_name = input("Enter output file name (without extension): ")
+                os.system(f'bash build_containers/run_redis_lua.sh "{query}" {it} {file_name}')
+                generate_plot(file_name, ['Execution Time']) 
+            else:
+                print("Invalid choice. Please try again.")
         elif choice == '5':
             print("Exiting...")
             break

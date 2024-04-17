@@ -31,4 +31,5 @@ do
 
     # Stop and remove the container
     docker stop $container_id
+    sleep 5
 done
