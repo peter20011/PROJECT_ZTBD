@@ -1,13 +1,4 @@
-CREATE PROCEDURE delete_n_records(n INT)
-BEGIN
-  DECLARE i INT DEFAULT 1;
+DELETE FROM olympics.person LIMIT 100;
 
-  WHILE i <= n DO
-    DELETE FROM olympics.person WHERE id = i;
-    SET i = i + 1;
-  END WHILE;
-END;
-
-#Scenarios
+#Scenarios - Zmieniemy wartość limit i tak dostosowujemy ilośc usuniętych wierszy.
 # 100, 1000, 10000, 20000, 30000, 40000, 50000;
-CALL delete_n_records(100);

@@ -1,13 +1,7 @@
-CREATE PROCEDURE insert_records_custom(IN num_records INT)
-BEGIN
-  DECLARE i INT DEFAULT 1;
+INSERT INTO olympics.person (full_name, gender, height, weight)
+SELECT 'John Doe', 'Male', 180, 75
+FROM information_schema.tables
+LIMIT 100;
 
-  WHILE i <= num_records DO
-    INSERT INTO olympics.person (full_name, gender, height, weight) VALUES ('John Doe', 'Male', 180, 75);
-    SET i = i + 1;
-  END WHILE;
-END;
-
-#Scenarios
+#Scenarios - Zmieniemy wartość limit i tak dostosowujemy ilośc dodanych wierszy.
 # 100, 1000, 10000, 20000, 30000, 40000, 50000;
-CALL insert_records_custom(100);
