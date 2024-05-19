@@ -2,7 +2,7 @@ import redis
 import json
 
 # Połączenie z Redis
-redis_client = redis.Redis(host='localhost', port=6379, db=0, password='pass', decode_responses=True)
+redis_client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
 
 # Ścieżka do pliku, w którym zostaną zapisane dane - dostosuj do swoich potrzeb
 output_file = r'C:\Users\Lenovo\Desktop\Studia\ZTBD\redis_exported\redis_export.json'

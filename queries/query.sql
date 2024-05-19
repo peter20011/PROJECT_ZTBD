@@ -1,3 +1,2 @@
-show databases;
 use olympics;
-show tables;
+select * from olympics.person;
