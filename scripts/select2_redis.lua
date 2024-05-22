@@ -1,54 +1,53 @@
--- Funkcja do pobrania wszystkich zawodników, którzy zdobyli medal
-local function select_medalists()
-    local result = {}
-    local medalists = {}
+-- Skrypt Lua do wyboru wszystkich zawodników, którzy zdobyli medal
 
-    -- Pobierz wszystkie klucze konkurencji
-    local competitor_keys = redis.call('KEYS', 'competitor_event:competitor:*:event:*')
+local cursor = "0"
+local result = {}
+local medal_name_na = 'NA'
 
-    for _, competitor_key in ipairs(competitor_keys) do
-        -- Pobierz medal_id dla każdej konkurencji
-        local medal_id = redis.call('HGET', competitor_key, 'medal_id')
-        
+repeat
+    -- Skanowanie kluczy partii
+    local scan_result = redis.call("SCAN", cursor, "MATCH", "competitor_event:competitor:*:event:*", "COUNT", 1000)
+    cursor = scan_result[1]
+    local keys = scan_result[2]
+
+    for _, key in ipairs(keys) do
+        local medal_id = redis.call('HGET', key, 'medal_id')
         if medal_id then
-            local medal_name = redis.call('HGET', 'medal:' .. medal_id, 'name')
-            
-            if medal_name and medal_name ~= 'NA' then
-                -- Wyodrębnij identyfikatory osoby i konkurencji z klucza
-                local _, _, competitor_id, _, event_id = string.match(competitor_key, '(competitor_event):competitor:(%d+):event:(%d+)')
-                local person_id = redis.call('HGET', 'competitor:' .. competitor_id, 'person_id')
-                local full_name = redis.call('HGET', 'person:' .. person_id, 'full_name')
-                
-                if full_name then
-                    -- Inicjalizuj licznik medali, jeśli nie istnieje
-                    if not medalists[full_name] then
-                        medalists[full_name] = 0
+            local medal_name = redis.call('HGET', 'medal:' .. medal_id, 'medal_name')
+            if medal_name and medal_name ~= medal_name_na then
+                local competitor_id = key:match('competitor_event:competitor:(%d+):event:%d+')
+                if competitor_id then
+                    local person_id = redis.call('HGET', 'games_competitor:' .. competitor_id, 'person_id')
+                    if person_id then
+                        local full_name = redis.call('HGET', 'person:' .. person_id, 'full_name')
+                        if full_name then
+                            if not result[full_name] then
+                                result[full_name] = 0
+                            end
+                            result[full_name] = result[full_name] + 1
+                        end
                     end
-                    
-                    -- Zwiększ licznik medali
-                    medalists[full_name] = medalists[full_name] + 1
                 end
             end
         end
     end
+until cursor == "0"
 
-    -- Konwersja tabeli do formatu listy dla sortowania
-    for full_name, total_medals in pairs(medalists) do
-        table.insert(result, {full_name, total_medals})
-    end
-
-    -- Sortowanie wyników według liczby medali malejąco
-    table.sort(result, function(a, b) return a[2] > b[2] end)
-
-    -- Przygotowanie wyniku do zwrócenia
-    local flat_result = {}
-    for _, row in ipairs(result) do
-        table.insert(flat_result, row[1])
-        table.insert(flat_result, row[2])
-    end
-
-    return flat_result
+-- Konwersja wyniku do tablicy
+local result_list = {}
+for full_name, total_medals in pairs(result) do
+    table.insert(result_list, {full_name, total_medals})
 end
 
--- Wywołaj funkcję i zwróć wynik
-return select_medalists()
+-- Funkcja sortująca po liczbie medali malejąco
+table.sort(result_list, function(a, b)
+    return b[2] < a[2]
+end)
+
+-- Przygotowanie wyniku do zwrócenia
+local response = {}
+for i, row in ipairs(result_list) do
+    table.insert(response, row[1] .. ": " .. row[2])
+end
+
+return response
