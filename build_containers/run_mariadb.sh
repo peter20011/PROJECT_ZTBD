@@ -1,26 +1,36 @@
 #!/bin/bash
 
+set -e
+
 current_dir=$(pwd)
 query=$1
-it=$2
+iterations=$2
 file_name=$3
-content="Iteration,$file_name"
-file_name="$file_name.csv"
+csv_file="output/${file_name}.csv"
+content="Iteration,${file_name}"
+
+# Create output directory if it doesn't exist
+mkdir -p output
 
 # Create a CSV file if it doesn't exist and write the header
-echo $content > output/$file_name
+if [ ! -f "$csv_file" ]; then
+    echo "$content" > "$csv_file"
+fi
 
-for (( i=1; i<=$it; i++ ))
+for (( i=1; i<=$iterations; i++ ))
 do
-    docker run -d --rm -v $current_dir/mariadb:/docker-entrypoint-initdb.d -e MYSQL_ALLOW_EMPTY_PASSWORD=yes mariadb:latest
-    container_id=$(docker ps -lq)
-    # Must sleep to allow the database to initialize
-    sleep 30
+    container_id=$(docker run -d --rm -v "${current_dir}/mariadb:/docker-entrypoint-initdb.d" -e MYSQL_ALLOW_EMPTY_PASSWORD=yes mariadb:latest)
+
+    echo "Waiting for the database to initialize..."
+    while ! docker exec "$container_id" mariadb -e "SELECT 1" &>/dev/null; do
+        sleep 1
+    done
 
     start_time=$(date +%s.%N)
 
-    # Open the container and execute the SQL query
-    result=$(docker exec $container_id mariadb -e "$query" 2>&1)
+    # Execute the SQL query
+    result=$(docker exec "$container_id" mariadb -e "$query" 2>&1)
+    query_status=$?
 
     end_time=$(date +%s.%N)
     execution_time=$(echo "$end_time - $start_time" | bc)
@@ -29,10 +39,15 @@ do
     echo "$result"
     echo "Execution time: $execution_time seconds"
 
+    if [ $query_status -eq 0 ]; then
+        echo "Query executed successfully."
+    else
+        echo "Query execution failed with status $query_status."
+    fi
+
     # Append execution time to CSV file
-    echo "$i,$execution_time" >> output/$file_name
+    echo "$i,$execution_time" >> "$csv_file"
 
     # Stop and remove the container
-    docker stop $container_id
-    sleep 5
+    docker stop "$container_id"
 done

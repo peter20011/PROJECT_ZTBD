@@ -2,148 +2,109 @@ import os
 import matplotlib.pyplot as plt
 import csv
 
-def generate_plot(file_name, columns):
-    file_name_ext = file_name + '.csv'
-    file_path = os.path.join('output', file_name_ext)
-    data = {}
-    with open(file_path, 'r') as csv_file:
-        csv_reader = csv.DictReader(csv_file)
-        for column in columns:
-            data[column] = {'x': [], 'y': []}
+def read_csv_data(file_path, columns):
+    data = {column: {'x': [], 'y': []} for column in columns}
+    try:
+        with open(file_path, 'r') as csv_file:
+            csv_reader = csv.DictReader(csv_file)
+            for row in csv_reader:
+                iteration = int(row['Iteration'])
+                for column in columns:
+                    value = float(row[column])
+                    data[column]['x'].append(iteration)
+                    data[column]['y'].append(value)
+    except FileNotFoundError:
+        print(f"File {file_path} not found.")
+    return data
 
-        for row in csv_reader:
-            iteration = int(row['Iteration'])
-            for column in columns:
-                value = float(row[column])
-                data[column]['x'].append(iteration)
-                data[column]['y'].append(value)
+def plot_data(data, file_name):
     plt.clf()
-    plt.legend(labels=[])
-    for column in columns:
-        plt.plot(data[column]['x'], data[column]['y'], marker='o', linestyle='-', label=column)
-
+    for column, values in data.items():
+        plt.plot(values['x'], values['y'], marker='o', linestyle='-', label=column)
     plt.xlabel('Iteration')
     plt.ylabel('Time[s]')
-    plt.title('Execution Time per Iteration - ' + file_name)
+    plt.title(f'Execution Time per Iteration - {file_name}')
     plt.legend()
     plt.grid(True)
-
-    if os.path.isfile(os.path.join('plots', file_name + '.png')):
-        os.remove(os.path.join('plots', file_name + '.png'))
-
-    plt.savefig(os.path.join('plots', file_name + '.png'))
+    output_path = os.path.join('plots', f'{file_name}.png')
+    if os.path.isfile(output_path):
+        os.remove(output_path)
+    plt.savefig(output_path)
     plt.show()
 
+def generate_plot(file_name, columns):
+    file_path = os.path.join('output', f'{file_name}.csv')
+    data = read_csv_data(file_path, columns)
+    plot_data(data, file_name)
 
 def merge_csv_files(files, output_file):
     data = {}
-
     for file in files:
-        file = file + '.csv'
-        file_path = os.path.join('output', file)
-        with open(file_path, 'r') as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                iteration = row['Iteration']
-                for column, value in row.items():
-                    if column != 'Iteration':
-                        if iteration not in data:
-                            data[iteration] = {}
-                        data[iteration][column] = value
-
-    output_file = output_file + '.csv'
-    output_file_path = os.path.join('output', output_file)
-
+        file_path = os.path.join('output', f'{file}.csv')
+        try:
+            with open(file_path, 'r') as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    iteration = row['Iteration']
+                    if iteration not in data:
+                        data[iteration] = {}
+                    for column, value in row.items():
+                        if column != 'Iteration':
+                            data[iteration][column] = value
+        except FileNotFoundError:
+            print(f"File {file_path} not found.")
+            return
+    output_file_path = os.path.join('output', f'{output_file}.csv')
     with open(output_file_path, 'w', newline='') as f:
         writer = csv.writer(f)
-        columns = ['Iteration'] + sorted(list(set(column for row in data.values() for column in row.keys())))
+        columns = ['Iteration'] + sorted(set(column for row in data.values() for column in row.keys()))
         writer.writerow(columns)
-        for iteration, row_data in data.items():
+        for iteration, row_data in sorted(data.items()):
             row = [iteration] + [row_data.get(column, '') for column in columns[1:]]
             writer.writerow(row)
+
+def run_database_query(script, query, iterations, file_name):
+    query_file = os.path.join('queries', query)
+    if os.path.isfile(query_file):
+        with open(query_file, 'r') as file:
+            query = file.read()
+    os.system(f'bash build_containers/{script}.sh "{query}" {iterations} {file_name}')
+    #generate_plot(file_name, [file_name])
 
 def main():
     os.system('bash build_containers/prepare_env.sh')
     while True:
         print("\nChoose a database:")
         print("1) MySQL")
-        print("2) Mariadb")
+        print("2) MariaDB")
         print("3) MongoDB")
         print("4) Redis")
         print("5) Exit")
         print("6) Merge csv files")
         choice = input("Enter your choice (1/2/3/4/5/6): ")
 
-        if choice == '1':
+        if choice in ['1', '2', '3', '4']:
+            db_scripts = {
+                '1': 'run_mysql',
+                '2': 'run_mariadb',
+                '3': 'run_mongodb',
+                '4': 'run_redis'
+            }
             query = input("Enter your query or file (with extension): ")
-            it = input("Enter the iteration count: ")
+            iterations = input("Enter the iteration count: ")
             file_name = input("Enter output file name (without extension): ")
-            query_file = os.path.join('queries', query)
-            if query.endswith('.sql') and os.path.isfile(query_file):
-                with open(query_file, 'r') as file:
-                    query = file.read()
-            os.system('bash build_containers/run_mysql.sh "' + query + '"' + ' ' + it + ' ' + file_name)
-            generate_plot(file_name, [file_name])
+            run_database_query(db_scripts[choice], query, iterations, file_name)
 
-        elif choice == '2':
-            query = input("Enter your query or file (with extension): ")
-            it = input("Enter the iteration count: ")
-            file_name = input("Enter output file name (without extension): ")
-            query_file = os.path.join('queries', query)
-            if query.endswith('.sql') and os.path.isfile(query_file):
-                with open(query_file, 'r') as file:
-                    query = file.read()
-            os.system('bash build_containers/run_mariadb.sh "' + query + '"' + ' ' + it + ' ' + file_name)
-            generate_plot(file_name, [file_name])
-        elif choice == '3':
-            query = input("Enter your query or file (with extension): ")
-            it = input("Enter the iteration count: ")
-            file_name = input("Enter output file name (without extension): ")
-            query_file = os.path.join('queries', query)
-            if query.endswith('.js') and os.path.isfile(query_file):
-                with open(query_file, 'r') as file:
-                    query = file.read()
-            os.system('bash build_containers/run_mongodb.sh "' + query + '"' + ' ' + it + ' ' + file_name)
-            generate_plot(file_name, [file_name])
-        elif choice == '4':
-            print("\nSelect query type:")
-            print("1) Standard command")
-            print("2) LUA script")
-            query_type = input("Enter your choice (1/2): ")
-            if query_type == '1':
-                query = input("Enter your query or file (with extension): ")
-                it = input("Enter the iteration count: ")
-                file_name = input("Enter output file name (without extension): ")
-                query_file = os.path.join('queries', query)
-                if query.endswith('.redis') and os.path.isfile(query_file):
-                    with open(query_file, 'r') as file:
-                        query = file.read()
-                os.system('bash build_containers/run_redis.sh "' + query + '"' + ' ' + it + ' ' + file_name)
-                generate_plot(file_name, [file_name])
-            elif query_type == '2':
-                query = input("Enter your LUA script name (without path, to be placed in 'scripts/' directory): ")
-                it = input("Enter the iteration count: ")
-                file_name = input("Enter output file name (without extension): ")
-                os.system(f'bash build_containers/run_redis_lua.sh "{query}" {it} {file_name}')
-                generate_plot(file_name, ['Execution Time']) 
-            else:
-                print("Invalid choice. Please try again.")
         elif choice == '5':
             print("Exiting...")
             break
+
         elif choice == '6':
-            files = []
-            output_file = ''
-            print("Merge csv files, choose the files to merge:")
             files = input("Enter the files to merge (separated by space, without extension): ").split()
-            output_file = input("Enter the output file name (without extansion): ")
-            try:
-                merge_csv_files(files, output_file)
-                generate_plot(output_file, files)
-            except FileNotFoundError:
-                print("One or more input files not found.")
-            except Exception as e:
-                print("An error occurred:", e)
+            output_file = input("Enter the output file name (without extension): ")
+            merge_csv_files(files, output_file)
+            generate_plot(output_file, files)
+
         else:
             print("Invalid choice. Please try again.")
 
